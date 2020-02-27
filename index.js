@@ -10,9 +10,38 @@ var sockets = [];
 var bullets = [];
 
 //updates
-setInterval(()-> {
+setInterval(() => {
+    bullets.forEach(bullet =>{
+        var isDestroyed = bullet.onUpdate();
 
-}),100,0;
+        //remove
+        if(isDestroyed) {
+            var index = bullets.indexOf(bullet);
+            if(index > -1){
+                bullets.splice(index, 1);
+
+                var returnData = {
+                    id: bullet.id
+                }
+                for(var playerID in players) {
+                    sockets[playerID].emit('serverUnspawn', returnData);
+                }
+            }   else{
+                    var returnData = {
+                        id: bullet.id,
+                        position: {
+                            x: bullet.position.x,
+                            y: bullet.position.y
+                        },
+                    }
+                    for(var playerID in players) {
+                    sockets[playerID].emit('serverUnspawn', returnData);
+                    }
+
+                }
+        }
+    });
+},100,0);
 
 io.on('connection', function(socket) {
    console.log('Connection Made!');
@@ -56,6 +85,22 @@ io.on('connection', function(socket) {
         bullet.direction.y = data.direction.y;
 
         bullet.push(bullet);
+
+        var returnData = {
+            name: bullet.name,
+            id: bullet.id,
+            position: {
+                x: bullet.position.x,
+                y: bullet.position.y
+            },
+            direction: {
+                x: bullet.direction.x,
+                y: bullet.direction.y
+            }
+        };
+
+        socket.emit('serverSpawn',returnData);
+        socket.broadcast.emit('serverSpawn', returnData);
     });
     socket.on('disconnect', function (){
        console.log('A player has disconnected');
